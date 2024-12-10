@@ -1,6 +1,11 @@
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.datamodeling.QueryResultPage;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BookDAO {
 
@@ -8,6 +13,7 @@ public class BookDAO {
 
     /**
      * Allows access to and manipulation of Book objects from the data store.
+     *
      * @param mapper Access to DynamoDB
      */
     public BookDAO(DynamoDBMapper mapper) {
@@ -15,18 +21,44 @@ public class BookDAO {
     }
 
     /**
-     * Uses the queryPage() method to query the BooksRead table for the given employeeId. If exclusiveStartAsin is null,
-     * this method will return the list of books starting from the beginning. If exclusiveStartAsin is not null, it will
+     * Uses the queryPage() method to query the BooksRead table for the given employeeId.
+     * If exclusiveStartAsin is null,
+     * this method will return the list of books starting from the beginning.
+     * If exclusiveStartAsin is not null, it will
      * return a list of books starting from after the exclusiveStartAsin.
+     * Make sure your query expression includes a method that gives the exclusive start
+     * key so that the query method knows where
+     * to start querying from when you call query again.
      *
-     * @param employeeId the given employee Id to query on
+     * @param employeeId         the given employee Id to query on
      * @param exclusiveStartAsin the given exclusive start asin for the query call.
-     * @param limit the upper limit of items retrieved from the query
+     * @param limit              the upper limit of items retrieved from the query
      * @return list of Books for employee id
      */
     public List<Book> getBooksReadByEmployee(String employeeId, String exclusiveStartAsin, int limit) {
         //TODO: implement
-        return null;
+        // Create a query expression for the BooksRead table
+        Book book = new Book();
+        book.setId(employeeId);
+
+        Map<String, AttributeValue> exclusiveStartKey = null;
+        if (exclusiveStartAsin != null) {
+            exclusiveStartKey = new HashMap<>();
+            exclusiveStartKey.put("id", new AttributeValue().withS(employeeId));
+            exclusiveStartKey.put("asin", new AttributeValue().withS(exclusiveStartAsin));
+        }
+            DynamoDBQueryExpression<Book> queryExpression = new DynamoDBQueryExpression<Book>();
+            queryExpression.withHashKeyValues(book);
+            queryExpression.withExclusiveStartKey(exclusiveStartKey);
+            queryExpression.withLimit(limit);
+
+            /*return mapper.queryPage(Book.class, queryExpression).getResults();*/
+            QueryResultPage<Book> resultPage = mapper.queryPage(Book.class, queryExpression);
+            return resultPage.getResults();
+        }
+
     }
 
-}
+
+
+
